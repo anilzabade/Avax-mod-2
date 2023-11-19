@@ -1,82 +1,57 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
 contract Assessment {
-    address payable public owner;
-    uint256 public balance;
+    address payable public accountHolder;
+    uint256 public accountBalance;
 
-    event Deposit(address indexed account, uint256 amount);
-    event Withdraw(address indexed account, uint256 amount);
-    event PurchaseMembership(address indexed account);
-    event MembershipStatus(address indexed account, string status);
+    event Deposited(address indexed depositor, uint256 amount);
+    event Withdrawn(address indexed withdrawer, uint256 amount);
+    event Transferred(address indexed sender, address indexed recipient, uint256 amount);
 
-    mapping(address => bool) public isMember;
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "You are not the owner of this account");
-        _;
-    }
-
-    constructor(uint256 initBalance) payable {
-        owner = payable(msg.sender);
-        balance = initBalance;
+    constructor(uint256 initialBalance) payable {
+        accountHolder = payable(msg.sender);
+        accountBalance = initialBalance;
     }
 
     function getBalance() public view returns (uint256) {
-        return balance;
+        return accountBalance;
     }
 
-    function deposit(uint256 _amount) public payable onlyOwner {
-        uint256 _previousBalance = balance;
-
-        // perform transaction
-        balance += _amount;
-
-        // assert transaction completed successfully
-        assert(balance == _previousBalance + _amount);
-
-        // emit the event
-        emit Deposit(msg.sender, _amount);
+    function deposit(uint256 depositAmount) public payable {
+        require(msg.sender == accountHolder, "Only the account holder can deposit");
+        require(depositAmount > 0, "Deposit amount must be greater than zero");
+        accountBalance += depositAmount;
+        emit Deposited(msg.sender, depositAmount);
     }
 
-    // custom error
-    error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
+    error InsufficientFunds(uint256 currentBalance, uint256 withdrawalAmount);
 
-    function withdraw(uint256 _withdrawAmount) public onlyOwner {
-        uint256 _previousBalance = balance;
-        if (balance < _withdrawAmount) {
-            revert InsufficientBalance({
-                balance: balance,
-                withdrawAmount: _withdrawAmount
-            });
+    function withdraw(uint256 withdrawalAmount) public {
+        require(msg.sender == accountHolder, "Only the account holder can withdraw");
+        if (accountBalance < withdrawalAmount) {
+            revert InsufficientFunds({ currentBalance: accountBalance, withdrawalAmount: withdrawalAmount });
         }
-
-        // withdraw the given amount
-        balance -= _withdrawAmount;
-
-        // assert the balance is correct
-        assert(balance == (_previousBalance - _withdrawAmount));
-
-        // emit the event
-        emit Withdraw(msg.sender, _withdrawAmount);
+        accountBalance -= withdrawalAmount;
+        emit Withdrawn(msg.sender, withdrawalAmount);
+    }
+    function transfer(address payable recipient, uint256 transferAmount) public {
+        require(msg.sender == accountHolder, "Only the account holder can initiate a transfer");
+        require(transferAmount > 0, "Transfer amount must be greater than zero");
+        require(accountBalance >= transferAmount, "Insufficient funds for transfer");
+        accountBalance -= transferAmount;
+        recipient.transfer(transferAmount);
+        emit Transferred(msg.sender, recipient, transferAmount);
     }
 
-    function purchaseMembership() public {
-        require(!isMember[msg.sender], "Already a gym member");
-        isMember[msg.sender] = true;
-
-        // emit the event
-        emit PurchaseMembership(msg.sender);
+   
+    function donate(address payable charity, uint256 donationAmount) public payable {
+        require(donationAmount > 0, "Donation amount must be greater than zero");
+        require(msg.value == donationAmount, "Incorrect donation amount sent");
+        charity.transfer(donationAmount);
     }
 
-    function membershipStatus() public view returns (string memory) {
-        string memory status;
-        if (isMember[msg.sender]) {
-            status = "There is an active gym membership";
-        } else {
-            status = "No active gym membership";
-        }
-
-        return status;
+    function multiply(uint256 number1, uint256 number2) public pure returns (uint256) {
+        return number1 * number2;
     }
 }
