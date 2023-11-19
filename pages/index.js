@@ -9,6 +9,7 @@ export default function HomePage() {
   const [balance, setBalance] = useState(undefined);
   const [inputAmount, setInputAmount] = useState(0);
   const [transactionStatus, setTransactionStatus] = useState({ status: "", time: "", date: "" });
+  const [transactionHistory, setTransactionHistory] = useState([]);
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
   const atmABI = atm_abi.abi;
@@ -67,9 +68,11 @@ export default function HomePage() {
         await tx.wait();
         getBalance();
         updateTransactionStatus("Deposit success");
+        updateTransactionHistory("Deposit", inputAmount, "Success");
       } catch (error) {
         console.error("Error depositing:", error);
         updateTransactionStatus("Deposit failed");
+        updateTransactionHistory("Deposit", inputAmount, "Failed");
       }
     }
   };
@@ -81,9 +84,11 @@ export default function HomePage() {
         await tx.wait();
         getBalance();
         updateTransactionStatus("Withdrawal success");
+        updateTransactionHistory("Withdrawal", inputAmount, "Success");
       } catch (error) {
         console.error("Error withdrawing:", error);
         updateTransactionStatus("Withdrawal failed");
+        updateTransactionHistory("Withdrawal", inputAmount, "Failed");
       }
     }
   };
@@ -96,6 +101,22 @@ export default function HomePage() {
       date: date.toLocaleDateString(),
     };
     setTransactionStatus(transaction);
+  };
+
+  const updateTransactionHistory = (type, amount, status) => {
+    const date = new Date();
+    const transaction = {
+      type,
+      amount,
+      status,
+      time: date.toLocaleTimeString(),
+      date: date.toLocaleDateString(),
+    };
+    setTransactionHistory([transaction, ...transactionHistory]);
+  };
+
+  const clearTransactionHistory = () => {
+    setTransactionHistory([]);
   };
 
   const initUser = () => {
@@ -135,6 +156,36 @@ export default function HomePage() {
             Transaction Status: {transactionStatus.status} | Time: {transactionStatus.time} | Date: {transactionStatus.date}
           </p>
         )}
+
+        {/* Transaction History */}
+        <h2>Transaction History</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Amount (ETH)</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactionHistory.map((transaction, index) => (
+              <tr key={index}>
+                <td>{transaction.type}</td>
+                <td>{transaction.amount}</td>
+                <td>{transaction.status}</td>
+                <td>{transaction.date}</td>
+                <td>{transaction.time}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Clear History Button */}
+        <button className="clear-history-button" onClick={clearTransactionHistory}>
+          Clear History
+        </button>
       </div>
     );
   };
@@ -162,10 +213,25 @@ export default function HomePage() {
         }
 
         .deposit-button,
-        .withdraw-button {
+        .withdraw-button,
+        .clear-history-button {
           padding: 5px;
+          margin-top: 10px;
           border: none;
           cursor: pointer;
+        }
+
+        table {
+          margin-top: 20px;
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        th,
+        td {
+          border: 1px solid #ddd;
+          padding: 8px;
+          text-align: left;
         }
       `}</style>
       <header>
